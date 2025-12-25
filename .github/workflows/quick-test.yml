@@ -1,0 +1,36 @@
+name: Quick Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quick-test:
+    name: Quick Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        
+    - name: Test build
+      run: |
+        make build
+        ls -la dist/
+        
+    - name: Test CLI help
+      run: |
+        JIRA_DOMAIN=test.atlassian.net JIRA_EMAIL=test@test.com JIRA_TOKEN=test123 ./dist/jirar --help
+        
+    - name: Test CLI commands
+      run: |
+        JIRA_DOMAIN=test.atlassian.net JIRA_EMAIL=test@test.com JIRA_TOKEN=test123 ./dist/jirar list --help
+        JIRA_DOMAIN=test.atlassian.net JIRA_EMAIL=test@test.com JIRA_TOKEN=test123 ./dist/jirar search --help
+        JIRA_DOMAIN=test.atlassian.net JIRA_EMAIL=test@test.com JIRA_TOKEN=test123 ./dist/jirar config --help

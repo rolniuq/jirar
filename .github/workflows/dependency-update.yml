@@ -1,0 +1,62 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    name: Update Go Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        
+    - name: Update dependencies
+      run: |
+        # Get all direct dependencies
+        go list -u -m -json all | grep -v indirect | jq -r .Path > deps.txt
+        
+        # Update each dependency
+        while read dep; do
+          echo "Updating $dep"
+          if go get -u "$dep"@"latest"; then
+            echo "Updated $dep successfully"
+          else
+            echo "Failed to update $dep"
+          fi
+        done < deps.txt
+        
+        # Tidy dependencies
+        go mod tidy
+        
+        # Build to ensure everything works
+        go build ./...
+        
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore: update go dependencies'
+        title: 'chore: update go dependencies'
+        body: |
+          🤖 Automated dependency update
+          
+          This PR updates Go dependencies to their latest versions.
+          
+          Please review the changes and ensure all tests pass.
+        branch: chore/update-dependencies
+        delete-branch: true
+        labels: |
+          dependencies
+          automated
